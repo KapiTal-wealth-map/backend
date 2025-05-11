@@ -4,6 +4,7 @@ const cors = require('cors');
 // const morgan = require('morgan');
 // const helmet = require('helmet');
 const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -16,7 +17,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-
+app.use('/api/users', userRoutes);
 // Global Error Handler
 app.use(errorHandler);
 

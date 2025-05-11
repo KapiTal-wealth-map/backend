@@ -11,4 +11,5 @@ module.exports = {
   EMAIL_FROM: process.env.EMAIL_FROM,
   EMAIL_PASS: process.env.EMAIL_PASS,
   MFA_ISSUER: 'Wealth Map',
+  FRONTEND_DEV_URL: process.env.FRONTEND_DEV_URL,
 };
