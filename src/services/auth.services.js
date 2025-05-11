@@ -9,8 +9,6 @@ const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
 const redisClient = require('../utils/redis');
 
-// TODO: email based OTP as fallback for mfa
-
 // register a new company and admin user
 const registerCompany = async (companyName, email, password, name) => {
   // check if all fields are provided
