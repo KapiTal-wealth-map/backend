@@ -101,14 +101,14 @@ exports.updateCompanySettings = async (req, res, next) => {
     }
     
     const companyId = req.user.companyId;
-    const { name, logoUrl, dataAccessPreferences } = req.body;
+    const { name, logoUrl, dataAccessSettings } = req.body;
     
     const result = await userService.updateCompanySettings(
       companyId, 
       { 
         name, 
         logo: logoUrl, // Store the Supabase URL
-        dataAccessPreferences 
+        dataAccessSettings 
       }
     );
     
