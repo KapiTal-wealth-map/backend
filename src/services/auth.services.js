@@ -9,7 +9,7 @@ const sendEmail = require('../utils/sendEmail');
 const redisClient = require('../utils/redis');
 
 // register a new company and admin user
-const registerCompany = async (companyName, email, password, name) => {
+const registerCompany = async (companyName, email, password, name, logoUrl = null) => {
   // check if all fields are provided
   if (!companyName || !email || !password || !name) throw new AppError('All fields are required', 400);
 
@@ -24,11 +24,12 @@ const registerCompany = async (companyName, email, password, name) => {
   const company = await prisma.company.create({
     data: {
       name: companyName,
+      logo: logoUrl // Store the logo URL from Supabase
     },
   });
 
   // create admin user, set mfa to false, link to the company
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       email,
       name,
@@ -36,13 +37,18 @@ const registerCompany = async (companyName, email, password, name) => {
       role: 'admin',
       mfaEnabled: false,
       companyId: company.id,
-      status: 'active', // TODO: admin active / company employees invited
+      status: 'active',
+      mfaSecret: null, // No MFA secret yet
     },
   });
 
   return {
     success: true,
     message: 'Registration successful',
+    company: {
+      id: company.id,
+      name: company.name
+    }
   };
 }
 
@@ -164,7 +170,7 @@ const sendEmailOtp = async (email) => {
 
   // send email
   console.log('sending email');
-  const emailResult = await sendEmail({ to: 't.mulugur@gmail.com', subject: emailSubject, text: emailText, html: emailHtml });
+  const emailResult = await sendEmail({ to: email, subject: emailSubject, text: emailText, html: emailHtml });
   return { success: true, message: 'Email sent successfully' };
 }
 

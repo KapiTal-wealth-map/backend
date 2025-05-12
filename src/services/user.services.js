@@ -1,8 +1,9 @@
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../config/db');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const AppError = require('../utils/AppError');
-const { FRONTEND_DEV_URL } = require('../config/env');
+const { FRONTEND_DEV_URL, JWT_SECRET } = require('../config/env');
 const sendEmail = require('../utils/sendEmail');
 const FRONTEND_URL = FRONTEND_DEV_URL;
 
@@ -23,11 +24,11 @@ const generateInvite = async ( email, role, adminUser ) => {
     },
   });
 
-  const inviteUrl = `${FRONTEND_URL}/accept-invite/${token}`;
+  const inviteUrl = `${FRONTEND_URL}/accept-invite?token=${token}`;
   const emailSubject = 'Invitation to join Wealth Map';
   const emailText = `Click the link below to accept the invitation: ${inviteUrl}. This link will expire in 24 hours.`;
   const emailHtml = `<p>Click the link below to accept the invitation: <a href="${inviteUrl}">${inviteUrl}</a>. This link will expire in 24 hours.</p>`;
-  const emailResult = await sendEmail({ to: 't.mulugur@gmail.com', subject: emailSubject, text: emailText, html: emailHtml });
+  const emailResult = await sendEmail({ to: email, subject: emailSubject, text: emailText, html: emailHtml });
   console.log('invite sent');
   return {
     success: true,
@@ -62,18 +63,31 @@ const acceptInvite = async ( token, empName, password ) => {
       where: { token },
       data: { status: 'accepted' },
     });
+    
+    // Generate JWT token for the user
+    const jwtToken = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+      },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
   
     return {
       success: true,
       message: 'Account created successfully',
+      token: jwtToken,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
+        company: user.companyId,
       },
     };
-  
 }
 
 const getUserProfile = async (userId) => {
@@ -102,8 +116,67 @@ const deactivateUser = async (userId, companyId) => {
     await prisma.user.update({ where: { id: userId }, data: { status: 'inactive' } });
 }
 
+const updateUserRole = async (userId, role, companyId) => {
+    if (!userId) throw new AppError('User ID is required', 400);
+    if (!role) throw new AppError('Role is required', 400);
+    if (!companyId) throw new AppError('Company ID is required', 400);
+    
+    // First check if the user belongs to the same company as the admin
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true }
+    });
+    
+    if (!user) {
+        throw new AppError('User not found', 404);
+    }
+    
+    if (user.companyId !== companyId) {
+        throw new AppError('You can only update users in your own company', 403);
+    }
+    
+    await prisma.user.update({
+        where: { id: userId },
+        data: { role }
+    });
+}
 
+const getCompanySettings = async (companyId) => {
+  if (!companyId) throw new AppError('Company ID is required', 400);
+  
+  const company = await prisma.company.findUnique({ 
+    where: { id: companyId },
+    select: {
+      id: true,
+      name: true,
+      logo: true,
+      dataAccessSettings: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  });
+  
+  if (!company) throw new AppError('Company not found', 404);
+  return company;
+};
 
+const updateCompanySettings = async (companyId, data) => {
+  if (!companyId) throw new AppError('Company ID is required', 400);
+  
+  const company = await prisma.company.update({
+    where: { id: companyId },
+    data: data,
+    select: {
+      id: true,
+      name: true,
+      logo: true,
+      dataAccessSettings: true,
+      updatedAt: true
+    }
+  });
+  
+  return company;
+};
 
 module.exports = {
   generateInvite,
@@ -112,4 +185,7 @@ module.exports = {
   updateUserProfile,
   getUsersInCompany,
   deactivateUser,
+  updateUserRole,
+  getCompanySettings,
+  updateCompanySettings
 };

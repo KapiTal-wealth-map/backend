@@ -59,3 +59,61 @@ exports.deactivateUser = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.updateUserRole = async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    const { role } = req.body;
+    
+    // Validate that the role is either 'admin' or 'user'
+    if (role !== 'admin' && role !== 'user') {
+      return res.status(400).json({ message: 'Invalid role. Role must be either "admin" or "user"' });
+    }
+    
+    // Ensure users can't update their own role
+    if (userId === req.user.id) {
+      return res.status(403).json({ message: 'You cannot change your own role' });
+    }
+    
+    await userService.updateUserRole(userId, role, req.user.companyId);
+    res.status(200).json({ success: true, message: 'User role updated successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getCompanySettings = async (req, res, next) => {
+  try {
+    // Get company settings using company ID from authenticated user
+    const companyId = req.user.companyId;
+    const company = await userService.getCompanySettings(companyId);
+    res.status(200).json({ success: true, company });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.updateCompanySettings = async (req, res, next) => {
+  try {
+    // Ensure user is an admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can update company settings' });
+    }
+    
+    const companyId = req.user.companyId;
+    const { name, logoUrl, dataAccessPreferences } = req.body;
+    
+    const result = await userService.updateCompanySettings(
+      companyId, 
+      { 
+        name, 
+        logo: logoUrl, // Store the Supabase URL
+        dataAccessPreferences 
+      }
+    );
+    
+    res.status(200).json({ success: true, company: result });
+  } catch (err) {
+    next(err);
+  }
+};

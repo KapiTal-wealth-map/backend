@@ -1,9 +1,13 @@
 const authService = require('../services/auth.services');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 exports.register = async (req, res, next) => {
   try {
-    const { companyName, email, password, name } = req.body;
-    const result = await authService.registerCompany(companyName, email, password, name);
+    const { companyName, email, password, name, logoUrl } = req.body;
+    
+    // Pass the logo URL instead of a file path
+    const result = await authService.registerCompany(companyName, email, password, name, logoUrl);
     res.status(201).json(result);
   } catch (err) {
     next(err);

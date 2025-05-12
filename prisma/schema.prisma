@@ -35,6 +35,8 @@ model User {
 model Company {
   id        String  @id @default(uuid())
   name      String
+  logo      String?
+  dataAccessSettings Json? @default("{}")
   users     User[]
   invites  Invite[]
   createdAt DateTime @default(now())
