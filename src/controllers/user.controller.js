@@ -1,4 +1,5 @@
 const userService = require('../services/user.services');
+const activityService = require('../services/activity.services');
 
 exports.inviteUser = async (req, res, next) => {
   try {
@@ -6,6 +7,16 @@ exports.inviteUser = async (req, res, next) => {
     const { email, role } = req.body;
 
     const result = await userService.generateInvite( email, role, adminUser );
+    
+    // Log the invitation
+    await activityService.createActivityLog(
+      adminUser.id,
+      'create',
+      `User ${email} invited with role ${role}`,
+      req.ip,
+      req.headers['user-agent']
+    );
+    
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -53,7 +64,22 @@ exports.listCompanyUsers = async (req, res, next) => {
 exports.deactivateUser = async (req, res, next) => {
   try {
     const userId = req.params.userId;
-    await userService.deactivateUser(userId, req.user.companyId);
+    const adminUser = req.user;
+    
+    // Get user details before deactivation
+    const userToDeactivate = await userService.getUserProfile(userId);
+    
+    await userService.deactivateUser(userId, adminUser.companyId);
+    
+    // Log the deactivation
+    await activityService.createActivityLog(
+      adminUser.id,
+      'delete',
+      `User ${userToDeactivate.email} deactivated`,
+      req.ip,
+      req.headers['user-agent']
+    );
+    
     res.status(200).json({ success: true, message: 'User deactivated' });
   } catch (err) {
     next(err);
@@ -64,18 +90,22 @@ exports.updateUserRole = async (req, res, next) => {
   try {
     const userId = req.params.userId;
     const { role } = req.body;
+    const adminUser = req.user;
     
-    // Validate that the role is either 'admin' or 'user'
-    if (role !== 'admin' && role !== 'user') {
-      return res.status(400).json({ message: 'Invalid role. Role must be either "admin" or "user"' });
-    }
+    // Get user details before role update
+    const userToUpdate = await userService.getUserProfile(userId);
     
-    // Ensure users can't update their own role
-    if (userId === req.user.id) {
-      return res.status(403).json({ message: 'You cannot change your own role' });
-    }
+    await userService.updateUserRole(userId, role, adminUser.companyId);
     
-    await userService.updateUserRole(userId, role, req.user.companyId);
+    // Log the role update
+    await activityService.createActivityLog(
+      adminUser.id,
+      'update',
+      `User ${userToUpdate.email} role updated to ${role}`,
+      req.ip,
+      req.headers['user-agent']
+    );
+    
     res.status(200).json({ success: true, message: 'User role updated successfully' });
   } catch (err) {
     next(err);
@@ -115,5 +145,31 @@ exports.updateCompanySettings = async (req, res, next) => {
     res.status(200).json({ success: true, company: result });
   } catch (err) {
     next(err);
+  }
+};
+
+exports.getNotificationPreferences = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const preferences = await userService.getUserNotificationPreferences(userId);
+    res.json({ notificationPreferences: preferences });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.updateNotificationPreferences = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { preferences } = req.body;
+    
+    if (!preferences) {
+      return res.status(400).json({ message: 'Notification preferences are required' });
+    }
+
+    const updatedPreferences = await userService.updateUserNotificationPreferences(userId, preferences);
+    res.json({ notificationPreferences: updatedPreferences });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };

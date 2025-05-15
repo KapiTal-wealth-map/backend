@@ -161,7 +161,7 @@ const sendEmailOtp = async (email) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const key = `otp:${email}`;
   // await redisClient.set(key, otp, 'EX', 60); // 60 seconds
-  console.log('redis otp set');
+  // console.log('redis otp set');
 
   // send otp to user email
   const emailSubject = 'Wealth Map - OTP for MFA';

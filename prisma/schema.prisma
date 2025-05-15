@@ -24,11 +24,11 @@ model User {
   mfaEnabled   Boolean  @default(false)
   status       String   @default("invited")
   lastLogin    DateTime?
+  notificationPreferences Json @default("{\"email\": true, \"inApp\": true}")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   company      Company  @relation(fields: [companyId], references: [id])
-  notifications NotificationPreference[]
   auditLogs    AuditLog[]
 }
 
@@ -36,23 +36,11 @@ model Company {
   id        String  @id @default(uuid())
   name      String
   logo      String?
-  dataAccessSettings Json? @default("{}")
+  dataAccessSettings  Json?    @default("{\"allowPublicProfileViewing\":false,\"allowEmployeeDataExport\":false,\"allowEmployeePropertySearch\":true,\"restrictSensitiveData\":true}")
   users     User[]
   invites  Invite[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model NotificationPreference {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String
-  name      String
-  enabled   Boolean
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user      User     @relation(fields: [userId], references: [id])
 }
 
 model AuditLog {
