@@ -10,7 +10,8 @@ const FRONTEND_URL = FRONTEND_DEV_URL;
 const generateInvite = async ( email, role, adminUser ) => {
   // Only allow admin to invite
   if (adminUser.role !== 'admin') throw new AppError('Only admins can invite users', 403);
-
+  const existingUser = await prisma.user.findUnique({ where: { email: email } });
+  if (existingUser) throw new AppError('User already part of organisation', 400);
   const token = uuidv4();
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
 
@@ -38,12 +39,12 @@ const generateInvite = async ( email, role, adminUser ) => {
 }
 
 const acceptInvite = async ( token, empName, password ) => {
-
     const invite = await prisma.invite.findUnique({ where: { token } });
-    if (!invite || invite.status !== 'pending') throw new AppError('Invalid or expired invite token', 401);
+    if (!invite || invite.status !== 'pending') throw new AppError('Invalid or expired invite token yoo', 401);
   
     const existingUser = await prisma.user.findUnique({ where: { email: invite.email } });
-    if (existingUser) throw new AppError('User already exists for this email', 400);
+    console.log(existingUser)
+    if (existingUser) throw new AppError('User already part of organisation', 400);
   
     const hashedPassword = await bcrypt.hash(password, 10);
   
@@ -178,6 +179,40 @@ const updateCompanySettings = async (companyId, data) => {
   return company;
 };
 
+const getUserNotificationPreferences = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { notificationPreferences: true }
+  });
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+  
+  return user.notificationPreferences;
+};
+
+const updateUserNotificationPreferences = async (userId, preferences) => {
+  // Validate preferences object
+  if (!preferences || typeof preferences !== 'object') {
+    throw new Error('Invalid notification preferences');
+  }
+
+  // Ensure only email and inApp are present
+  const validPreferences = {
+    email: !!preferences.email,
+    inApp: !!preferences.inApp
+  };
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { notificationPreferences: validPreferences },
+    select: { notificationPreferences: true }
+  });
+
+  return updatedUser.notificationPreferences;
+};
+
 module.exports = {
   generateInvite,
   acceptInvite,
@@ -187,5 +222,7 @@ module.exports = {
   deactivateUser,
   updateUserRole,
   getCompanySettings,
-  updateCompanySettings
+  updateCompanySettings,
+  getUserNotificationPreferences,
+  updateUserNotificationPreferences
 };
