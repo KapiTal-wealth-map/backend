@@ -40,10 +40,10 @@ const generateInvite = async ( email, role, adminUser ) => {
 
 const acceptInvite = async ( token, empName, password ) => {
     const invite = await prisma.invite.findUnique({ where: { token } });
-    if (!invite || invite.status !== 'pending') throw new AppError('Invalid or expired invite token yoo', 401);
+    if (!invite) throw new AppError('You have not been invited to join this organisation', 400);
+    if (invite.status !== 'pending') throw new AppError('You have already accepted this invite or the invite has expired', 400);
   
     const existingUser = await prisma.user.findUnique({ where: { email: invite.email } });
-    console.log(existingUser)
     if (existingUser) throw new AppError('User already part of organisation', 400);
   
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -65,29 +65,11 @@ const acceptInvite = async ( token, empName, password ) => {
       data: { status: 'accepted' },
     });
     
-    // Generate JWT token for the user
-    const jwtToken = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        companyId: user.companyId,
-      },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
   
     return {
       success: true,
       message: 'Account created successfully',
-      token: jwtToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        company: user.companyId,
-      },
+      email: user.email,
     };
 }
 

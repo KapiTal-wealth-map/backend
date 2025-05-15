@@ -90,7 +90,7 @@ const verifyMfaCode = async ( email, code ) => {
 
   // check if user exists and mfa is setup
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.mfaSecret) throw new AppError('MFA not setup', 401);
+  if (!user || !user.mfaSecret) throw new AppError('MFA not setup', 400);
 
   // verify mfa code
   const isValid = speakeasy.totp.verify({
@@ -101,7 +101,7 @@ const verifyMfaCode = async ( email, code ) => {
   });
 
   // if mfa code is not valid, throw error
-  if (!isValid) throw new AppError('Invalid MFA code', 401);
+  if (!isValid) throw new AppError('Invalid MFA code', 400);
 
   // else update user mfaEnabled to true and generate jwt token indicated logged in successfully
   await prisma.user.update({
@@ -155,7 +155,7 @@ const sendEmailOtp = async (email) => {
   if (!user) throw new AppError('User not found', 404);
 
   // check if user is active
-  if (user.status !== 'active') throw new AppError('User not active', 401);
+  if (user.status !== 'active') throw new AppError('User not active', 400);
 
   // generate otp
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -192,10 +192,10 @@ const verifyEmailOtp = async (email, otp) => {
   const storedOtp = '123456';
   console.log('stored otp', storedOtp);
   
-  if (!storedOtp) throw new AppError('Invalid OTP', 401);
+  if (!storedOtp) throw new AppError('Invalid OTP', 400);
 
   // check if otp is correct
-  if (storedOtp !== otp) throw new AppError('Invalid OTP', 401);
+  if (storedOtp !== otp) throw new AppError('Invalid OTP', 400);
 
   // delete otp from redis
   // await redisClient.del(key);
@@ -227,7 +227,7 @@ const generateJWT = (user) => {
       companyId: user.companyId,
     },
     JWT_SECRET,
-    { expiresIn: '1h' }
+    { expiresIn: '12h' }
   );
 }
 
