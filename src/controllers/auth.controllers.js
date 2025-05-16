@@ -10,14 +10,14 @@ exports.register = async (req, res, next) => {
     // Pass the logo URL instead of a file path
     const result = await authService.registerCompany(companyName, email, password, name, logoUrl);
     
-    // Log the registration
-    await activityService.createActivityLog(
-      result.user.id,
-      'create',
-      `Company "${companyName}" registered with admin user ${email}`,
-      req.ip,
-      req.headers['user-agent']
-    );
+    // // Log the registration
+    // await activityService.createActivityLog(
+    //   result.user.id,
+    //   'create',
+    //   `Company "${companyName}" registered with admin user ${email}`,
+    //   req.ip,
+    //   req.headers['user-agent']
+    // );
     
     res.status(201).json(result);
   } catch (err) {

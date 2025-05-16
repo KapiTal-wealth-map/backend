@@ -27,6 +27,8 @@ exports.acceptInvite = async (req, res, next) => {
   try {
     const { token, name, password } = req.body;
     const result = await userService.acceptInvite(token, name, password);
+    
+    // Return in the same format as login response
     res.status(200).json(result);
   } catch (err) {
     next(err);

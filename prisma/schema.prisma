@@ -69,3 +69,22 @@ model Invite {
   company     Company  @relation(fields: [companyId], references: [id])
 }
 
+model Property {
+  id        String   @id @default(cuid())
+  address   String
+  city      String
+  state     String   @default("CA")
+  zip       String
+  lat       Float
+  lng       Float
+  price     Float?
+  estimatedValue  Float?
+  beds           Int?
+  baths          Float?
+  sizeSqFt       Int?
+  medianIncome   Int?
+  population     Int?
+  density        Int?
+  county         String?
+  createdAt DateTime @default(now())
+}
