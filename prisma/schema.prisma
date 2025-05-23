@@ -30,6 +30,7 @@ model User {
 
   company      Company  @relation(fields: [companyId], references: [id])
   auditLogs    AuditLog[]
+  favouriteListings FavoriteListing[]
 }
 
 model Company {
@@ -87,4 +88,17 @@ model Property {
   density        Int?
   county         String?
   createdAt DateTime @default(now())
+  favouriteListings FavoriteListing[]
+}
+
+model FavoriteListing {
+  id         String      @id @default(uuid())
+  userId     String
+  propertyId String
+  favoritedAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([userId, propertyId])
 }

@@ -59,14 +59,14 @@ const login = async (email, password ) => {
 
   // check if user exists
   const user = await prisma.user.findUnique({ where: { email: email } });
-  if (!user) throw new AppError('Invalid credentials', 401);
+  if (!user) throw new AppError('Invalid credentials', 400);
 
   // check if user is active
-  if (user.status !== 'active') throw new AppError('User not active', 401);
+  if (user.status !== 'active') throw new AppError('User not active', 400);
 
   // check if password is correct
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new AppError('Invalid credentials', 401);
+  if (!isMatch) throw new AppError('Invalid credentials', 400);
 
   // check if mfa is enabled, if so then in frontend prompt user to enter mfa code / scan qr code if first time setup
   if (user.mfaEnabled) {
