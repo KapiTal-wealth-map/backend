@@ -86,9 +86,6 @@ exports.getFavourites = async (userId) => {
     where: { userId },
     include: { property: true }
   });
-  if (!favourites || favourites.length === 0) {
-    throw new AppError('No favourites found for this user', 404);
-  }
   return favourites.map(fav => ({
     ...normalizeProperty(fav.property),
     favouriteId: fav.id,
