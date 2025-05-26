@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,34 +8,35 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  name         String
-  password     String
-  role         String
-  companyId    String
-  mfaSecret    String?
-  mfaEnabled   Boolean  @default(false)
-  status       String   @default("invited")
-  lastLogin    DateTime?
-  notificationPreferences Json @default("{\"email\": true, \"inApp\": true}")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  company      Company  @relation(fields: [companyId], references: [id])
-  auditLogs    AuditLog[]
-  favouriteListings FavoriteListing[]
+  id                      String            @id @default(uuid())
+  email                   String            @unique
+  name                    String
+  password                String
+  role                    String
+  companyId               String
+  mfaSecret               String?
+  mfaEnabled              Boolean           @default(false)
+  status                  String            @default("invited")
+  lastLogin               DateTime?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  notificationPreferences Json              @default("{\"email\": true, \"inApp\": true}")
+  auditLogs               AuditLog[]
+  favouriteListings       FavoriteListing[]
+  savedMapViews           SavedMapView[]
+  savedViewShares         SavedViewShare[]
+  company                 Company           @relation(fields: [companyId], references: [id])
 }
 
 model Company {
-  id        String  @id @default(uuid())
-  name      String
-  logo      String?
-  dataAccessSettings  Json?    @default("{\"allowPublicProfileViewing\":false,\"allowEmployeeDataExport\":false,\"allowEmployeePropertySearch\":true,\"restrictSensitiveData\":true}")
-  users     User[]
-  invites  Invite[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  name               String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  dataAccessSettings Json?    @default("{\"restrictSensitiveData\": true, \"allowEmployeeDataExport\": false, \"allowPublicProfileViewing\": false, \"allowEmployeePropertySearch\": true}")
+  logo               String?
+  invites            Invite[]
+  users              User[]
 }
 
 model AuditLog {
@@ -52,53 +47,131 @@ model AuditLog {
   ipAddress   String
   userAgent   String
   timestamp   DateTime @default(now())
-
   user        User     @relation(fields: [userId], references: [id])
 }
 
 model Invite {
-  id          String   @id @default(cuid())
-  email       String
-  role        String 
-  status      String   @default("pending")
-  token       String   @unique
-  expiresAt   DateTime
-  used        Boolean  @default(false)
-  companyId   String
-  createdAt   DateTime @default(now())
-
-  company     Company  @relation(fields: [companyId], references: [id])
+  id        String   @id @default(cuid())
+  email     String
+  role      String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  companyId String
+  createdAt DateTime @default(now())
+  status    String   @default("pending")
+  company   Company  @relation(fields: [companyId], references: [id])
 }
 
 model Property {
-  id        String   @id @default(cuid())
-  address   String
-  city      String
-  state     String   @default("CA")
-  zip       String
-  lat       Float
-  lng       Float
-  price     Float?
-  estimatedValue  Float?
-  beds           Int?
+  id             String   @id @default(cuid())
+  address        String
+  city           String
+  state          String   @default("CA")
+  zip            String
+  lat            Float
+  lng            Float
+  createdAt      DateTime @default(now())
+  estimatedValue Float?
   baths          Float?
-  sizeSqFt       Int?
+  beds           Int?
+  county         String?
+  density        Int?
   medianIncome   Int?
   population     Int?
-  density        Int?
-  county         String?
-  createdAt DateTime @default(now())
-  favouriteListings FavoriteListing[]
+  sizeSqFt       Int?
+  price          Float?
 }
 
 model FavoriteListing {
-  id         String      @id @default(uuid())
-  userId     String
-  propertyId String
-  favoritedAt DateTime @default(now())
-
-  user       User     @relation(fields: [userId], references: [id])
-  property   Property @relation(fields: [propertyId], references: [id])
+  id          String     @id @default(uuid())
+  userId      String
+  propertyId  String
+  favoritedAt DateTime   @default(now())
+  property    Property_1 @relation(fields: [propertyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user        User       @relation(fields: [userId], references: [id])
 
   @@unique([userId, propertyId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Property_1 {
+  Zip_Code                BigInt            @map("Zip Code")
+  Price                   BigInt
+  Beds                    BigInt?
+  Baths                   BigInt?
+  Living_Space            BigInt?           @map("Living Space")
+  Address                 String            @unique
+  Zip_Code_Population     BigInt?           @map("Zip Code Population")
+  Zip_Code_Density        Float?            @map("Zip Code Density")
+  County                  String?
+  Median_Household_Income BigInt?           @map("Median Household Income")
+  Latitude                Float?
+  Longitude               Float?
+  SizeRank                BigInt?
+  RegionName              String?
+  ZHVI                    Json?
+  Market_Value            Json?
+  id                      String            @id @default(dbgenerated("gen_random_uuid()"))
+  ownerId                 String?
+  favouriteListings       FavoriteListing[]
+  Owner                   Owner?            @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+}
+
+model Owner {
+  name         String?
+  netWorth     BigInt?
+  occupation   String?
+  age          Int?
+  email        String?
+  phone        String?
+  purchaseDate DateTime?    @db.Timestamp(6)
+  id           String       @id @default(dbgenerated("gen_random_uuid()"))
+  Property_1   Property_1[]
+}
+
+model SavedMapView {
+  id          String    @id @default(cuid())
+  name        String
+  centerLat   Float
+  centerLng   Float
+  zoom        Int
+  createdAt   DateTime  @default(now())
+  filters     Json?
+  showProperties Boolean?
+  showHeatmap Boolean?
+  showClusters Boolean?
+
+  scope       SavedViewScope  @default(private)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id])
+
+  sharedWith  SavedViewShare[]
+}
+
+enum SavedViewScope {
+  private
+  shared
+  company
+}
+
+model SavedViewShare {
+  id            String       @id @default(cuid())
+  savedMapView  SavedMapView @relation(fields: [savedMapViewId], references: [id])
+  savedMapViewId String
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+
+  @@unique([savedMapViewId, userId])
+}
+
+
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
 }
