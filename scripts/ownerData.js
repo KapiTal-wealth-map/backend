@@ -1,6 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
 const { faker } = require('@faker-js/faker');
-const prisma = new PrismaClient();
+const prisma = require('../src/config/db'); 
 
 async function main() {
   const allProperties = await prisma.property_1.findMany({ select: { id: true } });

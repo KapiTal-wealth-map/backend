@@ -1,9 +1,7 @@
 // src/server.js
 
 const app = require('./app');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('./config/db'); // Assuming you have a prisma config file
 const { PORT } = require('./config/env');
 
 app.listen(PORT, async () => {

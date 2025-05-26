@@ -23,8 +23,8 @@ model User {
   notificationPreferences Json              @default("{\"email\": true, \"inApp\": true}")
   auditLogs               AuditLog[]
   favouriteListings       FavoriteListing[]
+  Report                  Report[]
   savedMapViews           SavedMapView[]
-  savedViewShares         SavedViewShare[]
   company                 Company           @relation(fields: [companyId], references: [id])
 }
 
@@ -112,10 +112,11 @@ model Property_1 {
   RegionName              String?
   ZHVI                    Json?
   Market_Value            Json?
-  id                      String            @id @default(dbgenerated("gen_random_uuid()"))
+  id                      String            @id
   ownerId                 String?
   favouriteListings       FavoriteListing[]
   Owner                   Owner?            @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  ReportItem              ReportItem[]
 }
 
 model Owner {
@@ -144,21 +145,43 @@ model SavedMapView {
   scope          SavedViewScope   @default(private)
   userId         String
   user           User             @relation(fields: [userId], references: [id])
-  sharedWith     SavedViewShare[]
 }
 
-model SavedViewShare {
-  id             String       @id @default(cuid())
-  savedMapViewId String
-  userId         String
-  savedMapView   SavedMapView @relation(fields: [savedMapViewId], references: [id])
-  user           User         @relation(fields: [userId], references: [id])
+model Report {
+  id          String       @id
+  name        String
+  description String?
+  userId      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime
+  status      String       @default("draft")
+  type        String
+  filters     Json?
+  completedAt DateTime?
+  error       String?
+  startedAt   DateTime?
+  filePath    String?
+  User        User         @relation(fields: [userId], references: [id])
+  ReportItem  ReportItem[]
 
-  @@unique([savedMapViewId, userId])
+  @@index([userId])
+}
+
+model ReportItem {
+  id         String      @id
+  reportId   String
+  propertyId String?
+  zipCode    String?
+  order      Int
+  Property_1 Property_1? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  Report     Report      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([reportId])
+  @@index([zipCode])
 }
 
 enum SavedViewScope {
   private
-  shared
   company
 }

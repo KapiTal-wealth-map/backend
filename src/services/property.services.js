@@ -4,6 +4,7 @@ const { normalizeProperty } = require('../utils/BigInt');
 
 exports.getAllProperties = async (page, limit) => {
   const skip = (page - 1) * limit;
+  const total = await prisma.property_1.count();
   const properties = await prisma.property_1.findMany({
     skip,
     take: limit,
@@ -11,7 +12,10 @@ exports.getAllProperties = async (page, limit) => {
       Owner: true, // Include owner details
     }
   });
-  return properties.map(normalizeProperty);
+  return {
+    data: properties.map(normalizeProperty),
+    total
+  }
 };
 
 exports.getPropertyById = async (id) => {
@@ -22,7 +26,7 @@ exports.getPropertyById = async (id) => {
     }
   });
   if (!property) {
-    throw new AppError('Property not found', 404);
+    throw new AppError('Property not found yo', 404);
   }
   return normalizeProperty(property);
 };
@@ -68,7 +72,13 @@ exports.addToFavourites = async (userId, propertyIds) => {
       propertyId
     }))
   });
-  return favourites;
+  if (!favourites) {
+    throw new AppError('Failed to add favourites', 500);
+  }
+  if (favourites.count === 0) {
+    throw new AppError('No favourites added', 400);
+  }
+  return { message: 'added'}
 };
 
 exports.getFavourites = async (userId) => {
@@ -76,7 +86,13 @@ exports.getFavourites = async (userId) => {
     where: { userId },
     include: { property: true }
   });
-  return favourites;
+  if (!favourites || favourites.length === 0) {
+    throw new AppError('No favourites found for this user', 404);
+  }
+  return favourites.map(fav => ({
+    ...normalizeProperty(fav.property),
+    favouriteId: fav.id,
+  }));
 };
 
 exports.removeFromFavourites = async (userId, propertyIds) => {
@@ -92,23 +108,20 @@ exports.removeFromFavourites = async (userId, propertyIds) => {
 exports.createSavedMapView = async (data, userId) => {
   const {
     name,
-    centerLat,
-    centerLng,
+    center,
     zoom,
     filters,
     showProperties,
     showHeatmap,
     showClusters,
-    scope,
-    sharedUserIds = [],
+    scope = 'private', // default to private
   } = data;
 
-  // Create the saved view
   const savedMapView = await prisma.savedMapView.create({
     data: {
       name,
-      centerLat,
-      centerLng,
+      centerLat: center[0],
+      centerLng: center[1],
       zoom,
       filters,
       showProperties,
@@ -116,47 +129,39 @@ exports.createSavedMapView = async (data, userId) => {
       showClusters,
       scope,
       userId,
-      sharedWith: {
-        create: sharedUserIds.map(userId => ({ userId })),
-      },
     },
     include: {
-      sharedWith: true,
-      user: true, // Include the user who created the view
+      user: true,
     },
   });
 
   return savedMapView;
-}
+};
 
 exports.getSavedMapViewsForUser = async (userId, companyId) => {
-  // User can see:
-  // - their own saved views
-  // - shared views where they are in sharedWith
-  // - company-wide views for their company
   return await prisma.savedMapView.findMany({
     where: {
       OR: [
-        { userId: userId },
-        {
-          scope: 'shared',
-          sharedWith: { some: { userId } },
-        },
+        { userId }, // user's private views
         {
           scope: 'company',
-          user: { companyId }, // assumes User has companyId
+          user: {
+            companyId: companyId,
+          },
         },
       ],
     },
     include: {
-      sharedWith: true,
       user: true,
     },
+    orderBy: {
+      createdAt: 'desc',
+    },
   });
-}
+};
+
 
 exports.deleteSavedMapView = async (id, userId) => {
-  // Only owner can delete
   const savedMapView = await prisma.savedMapView.findUnique({
     where: { id },
   });
@@ -166,5 +171,6 @@ exports.deleteSavedMapView = async (id, userId) => {
   }
 
   await prisma.savedMapView.delete({ where: { id } });
-}
+};
+
 

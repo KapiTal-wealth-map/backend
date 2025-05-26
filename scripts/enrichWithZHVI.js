@@ -1,9 +1,8 @@
 // scripts/enrichWithZHVI.js
 const fs = require('fs');
 const csv = require('csv-parser');
-const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient();
+const prisma = require('../src/config/db'); 
 const ZHVI_CSV_PATH = '../uploads/data/zhvi.csv';
 const LATEST_DATE_COL = '2025-04-30'; // Update to match your actual column
 

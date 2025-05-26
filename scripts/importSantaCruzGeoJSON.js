@@ -1,7 +1,6 @@
 const fs = require('fs');
 const csv = require('csv-parser');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/config/db'); 
 
 const MAX_ROWS = 10;
 const FILE_PATH = '../uploads/data/props.csv';

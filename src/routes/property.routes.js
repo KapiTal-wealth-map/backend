@@ -10,7 +10,7 @@ router.post('/favourite', verifyJWT, propertyController.addToFavourites);
 router.get('/get/favourite', verifyJWT, propertyController.getFavourites);
 router.delete('/favourite', verifyJWT, propertyController.removeFromFavourites);
 router.post('/map-view', verifyJWT, propertyController.createSavedMapView);
-router.get('/map-view', verifyJWT, propertyController.getSavedMapViews);
+router.get('/get/map-view', verifyJWT, propertyController.getSavedMapViews);
 router.delete('/map-view/:id', verifyJWT, propertyController.deleteSavedMapView);
 
 module.exports = router;

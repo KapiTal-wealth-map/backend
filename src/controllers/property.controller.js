@@ -66,38 +66,13 @@ exports.removeFromFavourites = async (req, res, next) => {
   }
 };
 
-// controllers/savedMapViewController.js
-
 
 exports.createSavedMapView = async (req, res, next) => {
   try {
-    const userId = req.user.id; // assume req.user is set by auth middleware
-    const companyId = req.user.companyId;
+    const userId = req.user.id;
     const data = req.body;
 
     const savedView = await propertyService.createSavedMapView(data, userId);
-
-    // If scope is shared, send email notifications
-    if (savedView.scope === 'shared' && savedView.sharedWith.length > 0) {
-      for (const sharedUser of savedView.sharedWith) {
-        if (sharedUser.user?.email) {
-          await sendEmail({
-            to: sharedUser.user.email,
-            subject: `Map View "${savedView.name}" Shared With You`,
-            text: `A map view has been shared with you by ${userEmail}. View it here: ${FRONTEND_DEV_URL}/maps/view/${savedView.id}`,
-            html: `
-              <p>Hello,</p>
-              <p><strong>${userEmail}</strong> has shared a map view with you.</p>
-              <p><strong>Name:</strong> ${savedView.name}</p>
-              <p><a href="${FRONTEND_DEV_URL}/maps/view/${savedView.id}">Click here to open the map</a></p>
-              <br>
-              <p>- Wealth Map Team</p>
-            `,
-          });
-        }
-      }
-    }
-
     res.status(201).json(savedView);
   } catch (err) {
     next(err);
