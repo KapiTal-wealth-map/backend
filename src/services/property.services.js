@@ -1,17 +1,30 @@
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
+const { normalizeProperty } = require('../utils/BigInt');
 
 exports.getAllProperties = async (page, limit) => {
   const skip = (page - 1) * limit;
-  const properties = await prisma.property.findMany({
+  const properties = await prisma.property_1.findMany({
     skip,
-    take: limit
+    take: limit,
+    include: {
+      Owner: true, // Include owner details
+    }
   });
-  return properties;
+  return properties.map(normalizeProperty);
 };
 
 exports.getPropertyById = async (id) => {
-  return await prisma.property.findUnique({ where: { id } });
+  const property = await prisma.property_1.findUnique({
+    where: { id } ,
+    include: {
+      Owner: true, // Include owner details
+    }
+  });
+  if (!property) {
+    throw new AppError('Property not found', 404);
+  }
+  return normalizeProperty(property);
 };
 
 exports.filterProperties = async (filters) => {
@@ -29,7 +42,14 @@ exports.filterProperties = async (filters) => {
   if (minBeds || maxBeds) where.beds = { gte: parseInt(minBeds) || 0, lte: parseInt(maxBeds) || 100 };
   if (minBaths || maxBaths) where.baths = { gte: parseInt(minBaths) || 0, lte: parseInt(maxBaths) || 100 };
 
-  return await prisma.property.findMany({ where });
+  const properties = await prisma.property_1.findMany({
+    where,
+    include: {
+      Owner: true, // Include owner details
+    }
+  });
+  const normalizedProperties = properties.map(normalizeProperty);
+  return properties.map(normalizeProperty);
 };
 
 exports.addToFavourites = async (userId, propertyIds) => {
@@ -66,5 +86,85 @@ exports.removeFromFavourites = async (userId, propertyIds) => {
       propertyId: { in: propertyIds }
     }
   });
+}
+
+
+exports.createSavedMapView = async (data, userId) => {
+  const {
+    name,
+    centerLat,
+    centerLng,
+    zoom,
+    filters,
+    showProperties,
+    showHeatmap,
+    showClusters,
+    scope,
+    sharedUserIds = [],
+  } = data;
+
+  // Create the saved view
+  const savedMapView = await prisma.savedMapView.create({
+    data: {
+      name,
+      centerLat,
+      centerLng,
+      zoom,
+      filters,
+      showProperties,
+      showHeatmap,
+      showClusters,
+      scope,
+      userId,
+      sharedWith: {
+        create: sharedUserIds.map(userId => ({ userId })),
+      },
+    },
+    include: {
+      sharedWith: true,
+      user: true, // Include the user who created the view
+    },
+  });
+
+  return savedMapView;
+}
+
+exports.getSavedMapViewsForUser = async (userId, companyId) => {
+  // User can see:
+  // - their own saved views
+  // - shared views where they are in sharedWith
+  // - company-wide views for their company
+  return await prisma.savedMapView.findMany({
+    where: {
+      OR: [
+        { userId: userId },
+        {
+          scope: 'shared',
+          sharedWith: { some: { userId } },
+        },
+        {
+          scope: 'company',
+          user: { companyId }, // assumes User has companyId
+        },
+      ],
+    },
+    include: {
+      sharedWith: true,
+      user: true,
+    },
+  });
+}
+
+exports.deleteSavedMapView = async (id, userId) => {
+  // Only owner can delete
+  const savedMapView = await prisma.savedMapView.findUnique({
+    where: { id },
+  });
+
+  if (!savedMapView || savedMapView.userId !== userId) {
+    throw new Error('Not authorized');
+  }
+
+  await prisma.savedMapView.delete({ where: { id } });
 }
 
