@@ -131,47 +131,34 @@ model Owner {
 }
 
 model SavedMapView {
-  id          String    @id @default(cuid())
-  name        String
-  centerLat   Float
-  centerLng   Float
-  zoom        Int
-  createdAt   DateTime  @default(now())
-  filters     Json?
+  id             String           @id @default(cuid())
+  name           String
+  centerLat      Float
+  centerLng      Float
+  zoom           Int
+  createdAt      DateTime         @default(now())
+  filters        Json?
   showProperties Boolean?
-  showHeatmap Boolean?
-  showClusters Boolean?
+  showHeatmap    Boolean?
+  showClusters   Boolean?
+  scope          SavedViewScope   @default(private)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id])
+  sharedWith     SavedViewShare[]
+}
 
-  scope       SavedViewScope  @default(private)
-  userId     String
-  user       User            @relation(fields: [userId], references: [id])
+model SavedViewShare {
+  id             String       @id @default(cuid())
+  savedMapViewId String
+  userId         String
+  savedMapView   SavedMapView @relation(fields: [savedMapViewId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
 
-  sharedWith  SavedViewShare[]
+  @@unique([savedMapViewId, userId])
 }
 
 enum SavedViewScope {
   private
   shared
   company
-}
-
-model SavedViewShare {
-  id            String       @id @default(cuid())
-  savedMapView  SavedMapView @relation(fields: [savedMapViewId], references: [id])
-  savedMapViewId String
-  userId        String
-  user          User         @relation(fields: [userId], references: [id])
-
-  @@unique([savedMapViewId, userId])
-}
-
-
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model spatial_ref_sys {
-  srid      Int     @id
-  auth_name String? @db.VarChar(256)
-  auth_srid Int?
-  srtext    String? @db.VarChar(2048)
-  proj4text String? @db.VarChar(2048)
 }
