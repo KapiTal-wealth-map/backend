@@ -41,10 +41,10 @@ exports.filterProperties = async (filters) => {
 
   const where = {};
 
-  if (zip) where.zip = zip;
-  if (minPrice || maxPrice) where.price = { gte: parseFloat(minPrice) || 0, lte: parseFloat(maxPrice) || Number.MAX_VALUE };
-  if (minBeds || maxBeds) where.beds = { gte: parseInt(minBeds) || 0, lte: parseInt(maxBeds) || 100 };
-  if (minBaths || maxBaths) where.baths = { gte: parseInt(minBaths) || 0, lte: parseInt(maxBaths) || 100 };
+  if (zip) where.Zip_Code = zip;
+  if (minPrice || maxPrice) where.Price = { gte: parseFloat(minPrice) || 0, lte: parseFloat(maxPrice) || Number.MAX_VALUE };
+  if (minBeds || maxBeds) where.Beds = { gte: parseInt(minBeds) || 0, lte: parseInt(maxBeds) || 100 };
+  if (minBaths || maxBaths) where.Baths = { gte: parseInt(minBaths) || 0, lte: parseInt(maxBaths) || 100 };
 
   const properties = await prisma.property_1.findMany({
     where,
